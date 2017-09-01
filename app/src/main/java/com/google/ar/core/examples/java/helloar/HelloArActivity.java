@@ -40,6 +40,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -67,6 +68,12 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private GestureDetector mGestureDetector;
     private Snackbar mLoadingMessageSnackbar = null;
 
+    // UI Views
+    private SeekBar mSeekBarScale;
+
+    // Params
+    private float mScaleFactor = 1f;
+
     private ObjectRenderer mVirtualObject = new ObjectRenderer();
     private ObjectRenderer mVirtualObjectShadow = new ObjectRenderer();
     private PlaneRenderer mPlaneRenderer = new PlaneRenderer();
@@ -83,7 +90,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mSurfaceView = (GLSurfaceView) findViewById(R.id.surfaceview);
+
+        mSurfaceView = (GLSurfaceView) findViewById(R.id.surface_view);
+
+        setUpControls();
 
         mSession = new Session(/*context=*/this);
 
@@ -122,6 +132,23 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         mSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0); // Alpha used for plane blending.
         mSurfaceView.setRenderer(this);
         mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+    }
+
+    private void setUpControls() {
+        mSeekBarScale = (SeekBar) findViewById(R.id.seekbar_scale);
+        mSeekBarScale.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mScaleFactor = (float)progress / 20f;
+                Log.i(TAG, "Scale: " + mScaleFactor);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
     }
 
     @Override
@@ -291,7 +318,6 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             mPlaneRenderer.drawPlanes(mSession.getAllPlanes(), frame.getPose(), projmtx);
 
             // Visualize anchors created by touch.
-            float scaleFactor = 1.0f;
             for (PlaneAttachment planeAttachment : mTouches) {
                 if (!planeAttachment.isTracking()) {
                     continue;
@@ -302,8 +328,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 planeAttachment.getPose().toMatrix(mAnchorMatrix, 0);
 
                 // Update and draw the model and its shadow.
-                mVirtualObject.updateModelMatrix(mAnchorMatrix, scaleFactor);
-                mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, scaleFactor);
+                mVirtualObject.updateModelMatrix(mAnchorMatrix, mScaleFactor);
+                mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, mScaleFactor);
                 mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
             }
